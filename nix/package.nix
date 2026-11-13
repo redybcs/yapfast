@@ -7,7 +7,10 @@
 let
   inherit (pkgs) lib;
   native = import ./native.nix { inherit pkgs; };
-  toolchain = pkgs.rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
+  toolchain =
+  (pkgs.rust-bin.fromRustupToolchainFile ../rust-toolchain.toml).override {
+    extensions = [ "llvm-tools-preview" ];
+  };
   rustPlatform = pkgs.makeRustPlatform { cargo = toolchain; rustc = toolchain; };
   id = "io.github.yapfast.Yapfast";
   deepFilterHash = "sha256-JxvK5/PX29o23Pq9cNpTSyuAB7j9HszzDGHC2fOw74Y=";
@@ -86,6 +89,10 @@ rustPlatform.buildRustPackage {
     wrapProgram "$out/bin/yapfast" \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath native.runtimeLibraries} \
       --suffix LD_LIBRARY_PATH : /run/opengl-driver/lib
+    mkdir -p "$out/libexec"
+    ln -s \
+    "${toolchain}/lib/rustlib/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/bin/llvm-profdata" \
+    "$out/libexec/llvm-profdata"
   '';
   meta = {
     description = "Native Discord client that stays light on memory";
